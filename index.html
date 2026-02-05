@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CMYK Generator - Типография</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+            padding: 16px;
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        /* Color Preview */
+        .color-preview {
+            width: 100%;
+            aspect-ratio: 1;
+            max-height: 40vh;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 3px solid rgba(255,255,255,0.1);
+            transition: background-color 0.15s ease;
+        }
+
+        /* CMYK Values Display */
+        .cmyk-display {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            letter-spacing: 1px;
+        }
+
+        /* Half-tone Toggle */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+        }
+
+        .toggle-label {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 56px;
+            height: 30px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #4CAF50;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: #fff;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        .step-indicator {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            min-width: 60px;
+        }
+
+        /* Color Controls */
+        .color-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .color-row.cyan { border-left: 4px solid #00FFFF; }
+        .color-row.magenta { border-left: 4px solid #FF00FF; }
+        .color-row.yellow { border-left: 4px solid #FFFF00; }
+        .color-row.black { border-left: 4px solid #808080; }
+
+        .color-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+            width: 28px;
+            text-align: center;
+        }
+
+        .color-row.cyan .color-label { color: #00FFFF; }
+        .color-row.magenta .color-label { color: #FF00FF; }
+        .color-row.yellow .color-label { color: #FFFF00; }
+        .color-row.black .color-label { color: #aaa; }
+
+        .btn {
+            width: 52px;
+            height: 52px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        .btn-minus {
+            background: #ff4757;
+            color: #fff;
+        }
+
+        .btn-plus {
+            background: #2ed573;
+            color: #fff;
+        }
+
+        .value-display {
+            flex: 1;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            min-width: 70px;
+        }
+
+        .slider-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Reset Button */
+        .reset-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 20px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .reset-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* URL info */
+        .url-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            word-break: break-all;
+        }
+
+        /* Prevent zoom on double tap */
+        button, input {
+            touch-action: manipulation;
+        }
+
+        /* Landscape mode adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .color-preview {
+                max-height: 25vh;
+                aspect-ratio: 2/1;
+            }
+
+            .color-controls {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .color-row {
+                padding: 8px;
+            }
+
+            .btn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Larger screens */
+        @media (min-width: 600px) {
+            body {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 24px;
+            }
+
+            .color-preview {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CMYK Generator</h1>
+
+        <div class="color-preview" id="colorPreview"></div>
+
+        <div class="cmyk-display" id="cmykDisplay">C: 0 M: 0 Y: 0 K: 0</div>
+
+        <div class="toggle-container">
+            <span class="toggle-label">Полутона</span>
+            <div class="toggle-switch" id="halfToneToggle" onclick="toggleHalfTone()"></div>
+            <span class="step-indicator" id="stepIndicator">Шаг: 1%</span>
+        </div>
+
+        <div class="color-controls">
+            <div class="color-row cyan">
+                <span class="color-label">C</span>
+                <button class="btn btn-minus" onclick="adjustColor('c', -1)">−</button>
+                <div class="slider-container">
+                    <span class="value-display" id="cValue">0%</span>
+                    <input type="range" class="slider" id="cSlider" min="0" max="100" step="1" value="0" oninput="updateFromSlider('c')">
+                </div>
+                <button class="btn btn-plus" onclick="adjustColor('c', 1)">+</button>
+            </div>
+
+            <div class="color-row magenta">
+                <span class="color-label">M</span>
+                <button class="btn btn-minus" onclick="adjustColor('m', -1)">−</button>
+                <div class="slider-container">
+                    <span class="value-display" id="mValue">0%</span>
+                    <input type="range" class="slider" id="mSlider" min="0" max="100" step="1" value="0" oninput="updateFromSlider('m')">
+                </div>
+                <button class="btn btn-plus" onclick="adjustColor('m', 1)">+</button>
+            </div>
+
+            <div class="color-row yellow">
+                <span class="color-label">Y</span>
+                <button class="btn btn-minus" onclick="adjustColor('y', -1)">−</button>
+                <div class="slider-container">
+                    <span class="value-display" id="yValue">0%</span>
+                    <input type="range" class="slider" id="ySlider" min="0" max="100" step="1" value="0" oninput="updateFromSlider('y')">
+                </div>
+                <button class="btn btn-plus" onclick="adjustColor('y', 1)">+</button>
+            </div>
+
+            <div class="color-row black">
+                <span class="color-label">K</span>
+                <button class="btn btn-minus" onclick="adjustColor('k', -1)">−</button>
+                <div class="slider-container">
+                    <span class="value-display" id="kValue">0%</span>
+                    <input type="range" class="slider" id="kSlider" min="0" max="100" step="1" value="0" oninput="updateFromSlider('k')">
+                </div>
+                <button class="btn btn-plus" onclick="adjustColor('k', 1)">+</button>
+            </div>
+        </div>
+
+        <button class="reset-btn" onclick="resetColors()">Сбросить</button>
+
+        <div class="url-info" id="urlInfo"></div>
+    </div>
+
+    <script>
+        // CMYK values (0-100)
+        let cmyk = { c: 0, m: 0, y: 0, k: 0 };
+        let halfToneMode = false;
+
+        // Initialize from URL if present
+        function initFromURL() {
+            const path = window.location.pathname;
+            const match = path.match(/(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)/);
+            if (match) {
+                cmyk.c = parseFloat(match[1]) || 0;
+                cmyk.m = parseFloat(match[2]) || 0;
+                cmyk.y = parseFloat(match[3]) || 0;
+                cmyk.k = parseFloat(match[4]) || 0;
+
+                // Clamp values
+                cmyk.c = Math.min(100, Math.max(0, cmyk.c));
+                cmyk.m = Math.min(100, Math.max(0, cmyk.m));
+                cmyk.y = Math.min(100, Math.max(0, cmyk.y));
+                cmyk.k = Math.min(100, Math.max(0, cmyk.k));
+
+                // Enable half-tone if any value has decimals
+                if (cmyk.c % 1 !== 0 || cmyk.m % 1 !== 0 || cmyk.y % 1 !== 0 || cmyk.k % 1 !== 0) {
+                    halfToneMode = true;
+                    document.getElementById('halfToneToggle').classList.add('active');
+                    updateSliderStep();
+                }
+            }
+            updateDisplay();
+        }
+
+        // Convert CMYK to RGB
+        function cmykToRgb(c, m, y, k) {
+            c = c / 100;
+            m = m / 100;
+            y = y / 100;
+            k = k / 100;
+
+            const r = Math.round(255 * (1 - c) * (1 - k));
+            const g = Math.round(255 * (1 - m) * (1 - k));
+            const b = Math.round(255 * (1 - y) * (1 - k));
+
+            return { r, g, b };
+        }
+
+        // Update all displays
+        function updateDisplay() {
+            const rgb = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+
+            // Update color preview
+            document.getElementById('colorPreview').style.backgroundColor =
+                `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+            // Update CMYK display
+            const formatValue = (v) => halfToneMode ? v.toFixed(1) : Math.round(v);
+            document.getElementById('cmykDisplay').textContent =
+                `C: ${formatValue(cmyk.c)} M: ${formatValue(cmyk.m)} Y: ${formatValue(cmyk.y)} K: ${formatValue(cmyk.k)}`;
+
+            // Update individual values and sliders
+            ['c', 'm', 'y', 'k'].forEach(color => {
+                const value = cmyk[color];
+                document.getElementById(`${color}Value`).textContent =
+                    halfToneMode ? `${value.toFixed(1)}%` : `${Math.round(value)}%`;
+                document.getElementById(`${color}Slider`).value = value;
+            });
+
+            // Update URL info
+            const urlPath = `${formatValue(cmyk.c)}-${formatValue(cmyk.m)}-${formatValue(cmyk.y)}-${formatValue(cmyk.k)}`;
+            document.getElementById('urlInfo').textContent = `CMYK: ${urlPath}`;
+
+            // Update browser URL without reload
+            const newUrl = `${window.location.origin}${window.location.pathname.split('/').slice(0, -1).join('/') || ''}/${urlPath}`;
+            // history.replaceState(null, '', newUrl);
+        }
+
+        // Adjust color value
+        function adjustColor(color, direction) {
+            const step = halfToneMode ? 0.5 : 1;
+            cmyk[color] = Math.min(100, Math.max(0, cmyk[color] + (step * direction)));
+            updateDisplay();
+        }
+
+        // Update from slider
+        function updateFromSlider(color) {
+            const slider = document.getElementById(`${color}Slider`);
+            cmyk[color] = parseFloat(slider.value);
+            updateDisplay();
+        }
+
+        // Toggle half-tone mode
+        function toggleHalfTone() {
+            halfToneMode = !halfToneMode;
+            document.getElementById('halfToneToggle').classList.toggle('active');
+            document.getElementById('stepIndicator').textContent = halfToneMode ? 'Шаг: 0.5%' : 'Шаг: 1%';
+            updateSliderStep();
+            updateDisplay();
+        }
+
+        // Update slider step based on mode
+        function updateSliderStep() {
+            const step = halfToneMode ? 0.5 : 1;
+            ['c', 'm', 'y', 'k'].forEach(color => {
+                document.getElementById(`${color}Slider`).step = step;
+            });
+        }
+
+        // Reset all colors
+        function resetColors() {
+            cmyk = { c: 0, m: 0, y: 0, k: 0 };
+            updateDisplay();
+        }
+
+        // Long press for continuous adjustment
+        let pressTimer = null;
+        let pressInterval = null;
+
+        document.querySelectorAll('.btn').forEach(btn => {
+            const startContinuous = (e) => {
+                e.preventDefault();
+                const color = btn.closest('.color-row').classList[1].charAt(0);
+                const direction = btn.classList.contains('btn-plus') ? 1 : -1;
+
+                pressTimer = setTimeout(() => {
+                    pressInterval = setInterval(() => {
+                        adjustColor(color, direction);
+                    }, 80);
+                }, 400);
+            };
+
+            const stopContinuous = () => {
+                clearTimeout(pressTimer);
+                clearInterval(pressInterval);
+            };
+
+            btn.addEventListener('touchstart', startContinuous, { passive: false });
+            btn.addEventListener('touchend', stopContinuous);
+            btn.addEventListener('touchcancel', stopContinuous);
+            btn.addEventListener('mousedown', startContinuous);
+            btn.addEventListener('mouseup', stopContinuous);
+            btn.addEventListener('mouseleave', stopContinuous);
+        });
+
+        // Initialize
+        initFromURL();
+    </script>
+</body>
+</html>
