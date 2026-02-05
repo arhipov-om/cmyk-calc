@@ -36,17 +36,70 @@
             font-weight: 600;
         }
 
-        /* Color Preview */
-        .color-preview {
+        /* Color Preview - 4 overlapping squares */
+        .color-preview-container {
             width: 100%;
             aspect-ratio: 1;
             max-height: 40vh;
+            margin: 0 auto 16px;
+            position: relative;
+            background: #fff;
             border-radius: 16px;
-            margin-bottom: 16px;
+            overflow: hidden;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             border: 3px solid rgba(255,255,255,0.1);
-            background: #fff;
+            isolation: isolate;
         }
+
+        .color-square {
+            position: absolute;
+            width: 62%;
+            height: 62%;
+            border-radius: 20%;
+            mix-blend-mode: multiply;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* C - top left */
+        .color-square.cyan {
+            top: 5%;
+            left: 5%;
+            background-color: #fff;
+        }
+
+        /* M - top right */
+        .color-square.magenta {
+            top: 5%;
+            right: 5%;
+            background-color: #fff;
+        }
+
+        /* Y - bottom left */
+        .color-square.yellow {
+            bottom: 5%;
+            left: 5%;
+            background-color: #fff;
+        }
+
+        /* K - bottom right */
+        .color-square.black {
+            bottom: 5%;
+            right: 5%;
+            background-color: #fff;
+        }
+
+        /* Labels */
+        .color-label-overlay {
+            position: absolute;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+            z-index: 10;
+        }
+        .label-c { top: 8px; left: 12px; }
+        .label-m { top: 8px; right: 12px; }
+        .label-y { bottom: 8px; left: 12px; }
+        .label-k { bottom: 8px; right: 12px; }
 
         /* CMYK Values Display */
         .cmyk-display {
@@ -77,10 +130,10 @@
             background: rgba(255,255,255,0.05);
         }
 
-        .color-row.cyan { border-left: 4px solid #00FFFF; }
-        .color-row.magenta { border-left: 4px solid #FF00FF; }
-        .color-row.yellow { border-left: 4px solid #FFFF00; }
-        .color-row.black { border-left: 4px solid #808080; }
+        .color-row.cyan-row { border-left: 4px solid #00FFFF; }
+        .color-row.magenta-row { border-left: 4px solid #FF00FF; }
+        .color-row.yellow-row { border-left: 4px solid #FFFF00; }
+        .color-row.black-row { border-left: 4px solid #808080; }
 
         .color-label {
             font-weight: 600;
@@ -89,10 +142,10 @@
             text-align: center;
         }
 
-        .color-row.cyan .color-label { color: #00FFFF; }
-        .color-row.magenta .color-label { color: #FF00FF; }
-        .color-row.yellow .color-label { color: #FFFF00; }
-        .color-row.black .color-label { color: #aaa; }
+        .color-row.cyan-row .color-label { color: #00FFFF; }
+        .color-row.magenta-row .color-label { color: #FF00FF; }
+        .color-row.yellow-row .color-label { color: #FFFF00; }
+        .color-row.black-row .color-label { color: #aaa; }
 
         .btn {
             width: 56px;
@@ -156,9 +209,8 @@
 
         /* Landscape mode adjustments */
         @media (orientation: landscape) and (max-height: 500px) {
-            .color-preview {
-                max-height: 25vh;
-                aspect-ratio: 2/1;
+            .color-preview-container {
+                max-height: 30vh;
             }
 
             .color-controls {
@@ -189,8 +241,8 @@
                 margin-bottom: 24px;
             }
 
-            .color-preview {
-                max-height: 300px;
+            .color-preview-container {
+                max-height: 350px;
             }
         }
     </style>
@@ -199,33 +251,42 @@
     <div class="container">
         <h1>CMYK Generator</h1>
 
-        <div class="color-preview" id="colorPreview" style="background-color: rgb(255, 255, 255);"></div>
+        <div class="color-preview-container">
+            <div class="color-square cyan" id="squareC"></div>
+            <div class="color-square magenta" id="squareM"></div>
+            <div class="color-square yellow" id="squareY"></div>
+            <div class="color-square black" id="squareK"></div>
+            <span class="color-label-overlay label-c">C</span>
+            <span class="color-label-overlay label-m">M</span>
+            <span class="color-label-overlay label-y">Y</span>
+            <span class="color-label-overlay label-k">K</span>
+        </div>
 
         <div class="cmyk-display" id="cmykDisplay">C: 0  M: 0  Y: 0  K: 0</div>
 
         <div class="color-controls">
-            <div class="color-row cyan" data-color="c">
+            <div class="color-row cyan-row" data-color="c">
                 <span class="color-label">C</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <span class="value-display" id="cValue">0</span>
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
-            <div class="color-row magenta" data-color="m">
+            <div class="color-row magenta-row" data-color="m">
                 <span class="color-label">M</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <span class="value-display" id="mValue">0</span>
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
-            <div class="color-row yellow" data-color="y">
+            <div class="color-row yellow-row" data-color="y">
                 <span class="color-label">Y</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <span class="value-display" id="yValue">0</span>
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
-            <div class="color-row black" data-color="k">
+            <div class="color-row black-row" data-color="k">
                 <span class="color-label">K</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <span class="value-display" id="kValue">0</span>
@@ -240,26 +301,27 @@
         // CMYK values (0-100)
         const cmyk = { c: 0, m: 0, y: 0, k: 0 };
 
-        // CMYK to RGB - exact formula from cmyktool.com (w3color.js)
-        function cmykToRgb(c, m, y, k) {
-            c = c / 100;
-            m = m / 100;
-            y = y / 100;
-            k = k / 100;
+        // Convert CMYK value to layer color (for multiply blend)
+        // C -> affects Red, M -> affects Green, Y -> affects Blue, K -> affects all
+        function getLayerColor(channel, value) {
+            const v = Math.round(255 * (1 - value / 100));
+            const hex = v.toString(16).padStart(2, '0');
 
-            var r = 255 - ((Math.min(1, c * (1 - k) + k)) * 255);
-            var g = 255 - ((Math.min(1, m * (1 - k) + k)) * 255);
-            var b = 255 - ((Math.min(1, y * (1 - k) + k)) * 255);
-
-            return { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
+            switch(channel) {
+                case 'c': return `#${hex}ffff`; // Cyan reduces Red
+                case 'm': return `#ff${hex}ff`; // Magenta reduces Green
+                case 'y': return `#ffff${hex}`; // Yellow reduces Blue
+                case 'k': return `#${hex}${hex}${hex}`; // Black reduces all
+            }
         }
 
         // Update display
         function updateDisplay() {
-            // Calculate final color
-            const rgb = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
-            document.getElementById('colorPreview').style.backgroundColor =
-                `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+            // Update each color square
+            document.getElementById('squareC').style.backgroundColor = getLayerColor('c', cmyk.c);
+            document.getElementById('squareM').style.backgroundColor = getLayerColor('m', cmyk.m);
+            document.getElementById('squareY').style.backgroundColor = getLayerColor('y', cmyk.y);
+            document.getElementById('squareK').style.backgroundColor = getLayerColor('k', cmyk.k);
 
             // Update CMYK display
             document.getElementById('cmykDisplay').textContent =
