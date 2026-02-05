@@ -476,26 +476,45 @@
         // Long press for continuous adjustment
         let pressTimer = null;
         let pressInterval = null;
+        let isLongPress = false;
 
         document.querySelectorAll('.btn').forEach(btn => {
+            const getColorFromButton = (button) => {
+                const row = button.closest('.color-row');
+                if (row.classList.contains('cyan')) return 'c';
+                if (row.classList.contains('magenta')) return 'm';
+                if (row.classList.contains('yellow')) return 'y';
+                if (row.classList.contains('black')) return 'k';
+                return null;
+            };
+
             const startContinuous = (e) => {
-                e.preventDefault();
-                const color = btn.closest('.color-row').classList[1].charAt(0);
+                isLongPress = false;
+                const color = getColorFromButton(btn);
                 const direction = btn.classList.contains('btn-plus') ? 1 : -1;
 
                 pressTimer = setTimeout(() => {
+                    isLongPress = true;
                     pressInterval = setInterval(() => {
                         adjustColor(color, direction);
                     }, 80);
                 }, 400);
             };
 
-            const stopContinuous = () => {
+            const stopContinuous = (e) => {
                 clearTimeout(pressTimer);
                 clearInterval(pressInterval);
+
+                // If it was a short press (not long press), trigger the click
+                if (!isLongPress && e.type === 'touchend') {
+                    const color = getColorFromButton(btn);
+                    const direction = btn.classList.contains('btn-plus') ? 1 : -1;
+                    adjustColor(color, direction);
+                }
+                isLongPress = false;
             };
 
-            btn.addEventListener('touchstart', startContinuous, { passive: false });
+            btn.addEventListener('touchstart', startContinuous, { passive: true });
             btn.addEventListener('touchend', stopContinuous);
             btn.addEventListener('touchcancel', stopContinuous);
             btn.addEventListener('mousedown', startContinuous);
