@@ -33,8 +33,8 @@
             font-weight: 600;
         }
 
-        /* Color Preview with multiply blend mode */
-        .color-preview-wrapper {
+        /* Color Preview */
+        .color-preview {
             width: 100%;
             aspect-ratio: 1;
             max-height: 40vh;
@@ -42,19 +42,7 @@
             margin-bottom: 16px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             border: 3px solid rgba(255,255,255,0.1);
-            overflow: hidden;
-            position: relative;
             background: #fff;
-            isolation: isolate;
-        }
-
-        .color-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            mix-blend-mode: multiply;
         }
 
         /* CMYK Values Display */
@@ -165,7 +153,7 @@
 
         /* Landscape mode adjustments */
         @media (orientation: landscape) and (max-height: 500px) {
-            .color-preview-wrapper {
+            .color-preview {
                 max-height: 25vh;
                 aspect-ratio: 2/1;
             }
@@ -198,7 +186,7 @@
                 margin-bottom: 24px;
             }
 
-            .color-preview-wrapper {
+            .color-preview {
                 max-height: 300px;
             }
         }
@@ -208,12 +196,7 @@
     <div class="container">
         <h1>CMYK Generator</h1>
 
-        <div class="color-preview-wrapper">
-            <div class="color-layer" id="layerC"></div>
-            <div class="color-layer" id="layerM"></div>
-            <div class="color-layer" id="layerY"></div>
-            <div class="color-layer" id="layerK"></div>
-        </div>
+        <div class="color-preview" id="colorPreview"></div>
 
         <div class="cmyk-display" id="cmykDisplay">C: 0  M: 0  Y: 0  K: 0</div>
 
@@ -254,45 +237,36 @@
         // CMYK values (0-100)
         const cmyk = { c: 0, m: 0, y: 0, k: 0 };
 
-        // Convert value to hex
-        function toHex(value) {
-            const hex = Math.round(value).toString(16);
-            return hex.length === 1 ? '0' + hex : hex;
-        }
+        // CMYK to RGB using multiply blend formula (same as cmyktool.com)
+        // Each CMYK layer: C affects R, M affects G, Y affects B, K affects all
+        // Multiply blend: result = (layer1 * layer2 * ... * layerN) / 255^(n-1)
+        function cmykToRgb(c, m, y, k) {
+            // Convert percentages to 0-1
+            const C = c / 100;
+            const M = m / 100;
+            const Y = y / 100;
+            const K = k / 100;
 
-        // Get layer color for each CMYK channel
-        // Using the same formula as cmyktool.com
-        function getCyanLayerColor(c) {
-            // Cyan affects Red channel
-            const r = 255 * (1 - c / 100);
-            return '#' + toHex(r) + 'FFFF';
-        }
+            // Each layer color (inverted CMYK to RGB per channel)
+            // C layer: R = 1-C, G = 1, B = 1
+            // M layer: R = 1, G = 1-M, B = 1
+            // Y layer: R = 1, G = 1, B = 1-Y
+            // K layer: R = 1-K, G = 1-K, B = 1-K
 
-        function getMagentaLayerColor(m) {
-            // Magenta affects Green channel
-            const g = 255 * (1 - m / 100);
-            return '#FF' + toHex(g) + 'FF';
-        }
+            // Multiply all layers together
+            const r = Math.round(255 * (1 - C) * (1 - K));
+            const g = Math.round(255 * (1 - M) * (1 - K));
+            const b = Math.round(255 * (1 - Y) * (1 - K));
 
-        function getYellowLayerColor(y) {
-            // Yellow affects Blue channel
-            const b = 255 * (1 - y / 100);
-            return '#FFFF' + toHex(b);
-        }
-
-        function getBlackLayerColor(k) {
-            // Black affects all channels equally
-            const v = 255 * (1 - k / 100);
-            return '#' + toHex(v) + toHex(v) + toHex(v);
+            return { r, g, b };
         }
 
         // Update display
         function updateDisplay() {
-            // Update color layers with multiply blend mode
-            document.getElementById('layerC').style.backgroundColor = getCyanLayerColor(cmyk.c);
-            document.getElementById('layerM').style.backgroundColor = getMagentaLayerColor(cmyk.m);
-            document.getElementById('layerY').style.backgroundColor = getYellowLayerColor(cmyk.y);
-            document.getElementById('layerK').style.backgroundColor = getBlackLayerColor(cmyk.k);
+            // Calculate final color
+            const rgb = cmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+            document.getElementById('colorPreview').style.backgroundColor =
+                `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
 
             // Update CMYK display
             document.getElementById('cmykDisplay').textContent =
