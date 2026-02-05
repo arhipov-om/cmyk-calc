@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>CMYK Generator - Типография</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         * {
             box-sizing: border-box;
@@ -196,7 +199,7 @@
     <div class="container">
         <h1>CMYK Generator</h1>
 
-        <div class="color-preview" id="colorPreview"></div>
+        <div class="color-preview" id="colorPreview" style="background-color: rgb(255, 255, 255);"></div>
 
         <div class="cmyk-display" id="cmykDisplay">C: 0  M: 0  Y: 0  K: 0</div>
 
@@ -237,28 +240,18 @@
         // CMYK values (0-100)
         const cmyk = { c: 0, m: 0, y: 0, k: 0 };
 
-        // CMYK to RGB using multiply blend formula (same as cmyktool.com)
-        // Each CMYK layer: C affects R, M affects G, Y affects B, K affects all
-        // Multiply blend: result = (layer1 * layer2 * ... * layerN) / 255^(n-1)
+        // CMYK to RGB - exact formula from cmyktool.com (w3color.js)
         function cmykToRgb(c, m, y, k) {
-            // Convert percentages to 0-1
-            const C = c / 100;
-            const M = m / 100;
-            const Y = y / 100;
-            const K = k / 100;
+            c = c / 100;
+            m = m / 100;
+            y = y / 100;
+            k = k / 100;
 
-            // Each layer color (inverted CMYK to RGB per channel)
-            // C layer: R = 1-C, G = 1, B = 1
-            // M layer: R = 1, G = 1-M, B = 1
-            // Y layer: R = 1, G = 1, B = 1-Y
-            // K layer: R = 1-K, G = 1-K, B = 1-K
+            var r = 255 - ((Math.min(1, c * (1 - k) + k)) * 255);
+            var g = 255 - ((Math.min(1, m * (1 - k) + k)) * 255);
+            var b = 255 - ((Math.min(1, y * (1 - k) + k)) * 255);
 
-            // Multiply all layers together
-            const r = Math.round(255 * (1 - C) * (1 - K));
-            const g = Math.round(255 * (1 - M) * (1 - K));
-            const b = Math.round(255 * (1 - Y) * (1 - K));
-
-            return { r, g, b };
+            return { r: Math.round(r), g: Math.round(g), b: Math.round(b) };
         }
 
         // Update display
