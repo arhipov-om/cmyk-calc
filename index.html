@@ -182,6 +182,22 @@
             font-weight: 700;
             font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
             min-width: 80px;
+            background: transparent;
+            border: none;
+            color: #fff;
+            outline: none;
+            -moz-appearance: textfield;
+        }
+
+        .value-display::-webkit-outer-spin-button,
+        .value-display::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .value-display:focus {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
         }
 
         /* Reset Button */
@@ -268,28 +284,28 @@
             <div class="color-row cyan-row" data-color="c">
                 <span class="color-label">C</span>
                 <button class="btn btn-minus" type="button">−</button>
-                <span class="value-display" id="cValue">0</span>
+                <input type="number" class="value-display" id="cValue" min="0" max="100" value="0">
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
             <div class="color-row magenta-row" data-color="m">
                 <span class="color-label">M</span>
                 <button class="btn btn-minus" type="button">−</button>
-                <span class="value-display" id="mValue">0</span>
+                <input type="number" class="value-display" id="mValue" min="0" max="100" value="0">
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
             <div class="color-row yellow-row" data-color="y">
                 <span class="color-label">Y</span>
                 <button class="btn btn-minus" type="button">−</button>
-                <span class="value-display" id="yValue">0</span>
+                <input type="number" class="value-display" id="yValue" min="0" max="100" value="0">
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
             <div class="color-row black-row" data-color="k">
                 <span class="color-label">K</span>
                 <button class="btn btn-minus" type="button">−</button>
-                <span class="value-display" id="kValue">0</span>
+                <input type="number" class="value-display" id="kValue" min="0" max="100" value="0">
                 <button class="btn btn-plus" type="button">+</button>
             </div>
         </div>
@@ -328,10 +344,18 @@
                 `C: ${cmyk.c}  M: ${cmyk.m}  Y: ${cmyk.y}  K: ${cmyk.k}`;
 
             // Update individual values
-            document.getElementById('cValue').textContent = cmyk.c;
-            document.getElementById('mValue').textContent = cmyk.m;
-            document.getElementById('yValue').textContent = cmyk.y;
-            document.getElementById('kValue').textContent = cmyk.k;
+            document.getElementById('cValue').value = cmyk.c;
+            document.getElementById('mValue').value = cmyk.m;
+            document.getElementById('yValue').value = cmyk.y;
+            document.getElementById('kValue').value = cmyk.k;
+        }
+
+        // Handle manual input
+        function handleInput(color, inputEl) {
+            let value = parseInt(inputEl.value) || 0;
+            value = Math.max(0, Math.min(100, value));
+            cmyk[color] = value;
+            updateDisplay();
         }
 
         // Adjust color value
@@ -352,11 +376,12 @@
             updateDisplay();
         }
 
-        // Setup button handlers
+        // Setup button and input handlers
         document.querySelectorAll('.color-row').forEach(row => {
             const color = row.dataset.color;
             const minusBtn = row.querySelector('.btn-minus');
             const plusBtn = row.querySelector('.btn-plus');
+            const input = row.querySelector('.value-display');
 
             let intervalId = null;
             let timeoutId = null;
@@ -396,6 +421,10 @@
             });
             plusBtn.addEventListener('touchend', stopAdjust);
             plusBtn.addEventListener('touchcancel', stopAdjust);
+
+            // Input field
+            input.addEventListener('input', () => handleInput(color, input));
+            input.addEventListener('blur', () => handleInput(color, input));
         });
 
         // Reset button
