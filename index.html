@@ -129,7 +129,8 @@
         .color-row {
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            gap: 8px;
             padding: 12px;
             border-radius: 12px;
             background: rgba(255,255,255,0.05);
@@ -181,7 +182,8 @@
         }
 
         .value-display {
-            width: 60px;
+            width: 80px;
+            height: 56px;
             text-align: center;
             font-size: 1.8rem;
             font-weight: 700;
@@ -191,6 +193,7 @@
             color: #fff;
             outline: none;
             -moz-appearance: textfield;
+            flex-shrink: 0;
         }
 
         .value-display::-webkit-outer-spin-button,
@@ -206,7 +209,7 @@
 
         /* Scroll value display */
         .scroll-value {
-            width: 70px;
+            width: 80px;
             height: 56px;
             display: flex;
             align-items: center;
@@ -217,7 +220,7 @@
             color: #fff;
             background: rgba(255,255,255,0.1);
             border-radius: 12px;
-            cursor: ns-resize;
+            cursor: ew-resize;
             user-select: none;
             touch-action: none;
             position: relative;
@@ -228,23 +231,23 @@
         .scroll-value::after {
             content: '';
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 50%;
+            transform: translateY(-50%);
             width: 0;
             height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
             opacity: 0.4;
         }
 
         .scroll-value::before {
-            top: 4px;
-            border-bottom: 6px solid #fff;
+            left: 6px;
+            border-right: 6px solid #fff;
         }
 
         .scroll-value::after {
-            bottom: 4px;
-            border-top: 6px solid #fff;
+            right: 6px;
+            border-left: 6px solid #fff;
         }
 
         .scroll-value:active {
@@ -257,11 +260,12 @@
         }
 
         .delta-display {
-            min-width: 50px;
+            width: 50px;
+            flex-shrink: 0;
             font-size: 1rem;
             font-weight: 600;
             font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            text-align: left;
+            text-align: center;
         }
 
         .delta-positive {
@@ -615,26 +619,26 @@
 
         document.getElementById('modeBtn').addEventListener('click', toggleMode);
 
-        // Scroll/drag handling for scroll-value elements
+        // Scroll/drag handling for scroll-value elements (horizontal)
         document.querySelectorAll('.scroll-value').forEach(scrollEl => {
             const color = scrollEl.closest('.color-row').dataset.color;
-            let startY = 0;
+            let startX = 0;
             let startValue = 0;
             let isDragging = false;
             let accumulatedDelta = 0;
 
-            const onStart = (y) => {
+            const onStart = (x) => {
                 isDragging = true;
-                startY = y;
+                startX = x;
                 startValue = cmyk[color];
                 accumulatedDelta = 0;
             };
 
-            const onMove = (y) => {
+            const onMove = (x) => {
                 if (!isDragging) return;
-                const deltaY = startY - y;
-                // 5px = 1 unit change
-                const deltaValue = Math.round(deltaY / 5);
+                const deltaX = x - startX;
+                // 5px = 1 unit change (right = increase, left = decrease)
+                const deltaValue = Math.round(deltaX / 5);
                 if (deltaValue !== accumulatedDelta) {
                     accumulatedDelta = deltaValue;
                     const newValue = Math.max(0, Math.min(100, startValue + deltaValue));
@@ -652,11 +656,11 @@
             // Mouse events
             scrollEl.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                onStart(e.clientY);
+                onStart(e.clientX);
             });
 
             document.addEventListener('mousemove', (e) => {
-                onMove(e.clientY);
+                onMove(e.clientX);
             });
 
             document.addEventListener('mouseup', onEnd);
@@ -664,18 +668,18 @@
             // Touch events
             scrollEl.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                onStart(e.touches[0].clientY);
+                onStart(e.touches[0].clientX);
             });
 
             scrollEl.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                onMove(e.touches[0].clientY);
+                onMove(e.touches[0].clientX);
             });
 
             scrollEl.addEventListener('touchend', onEnd);
             scrollEl.addEventListener('touchcancel', onEnd);
 
-            // Mouse wheel
+            // Mouse wheel (keep vertical for convenience)
             scrollEl.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 const delta = e.deltaY > 0 ? -1 : 1;
