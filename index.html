@@ -176,12 +176,11 @@
         }
 
         .value-display {
-            flex: 1;
+            width: 60px;
             text-align: center;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            min-width: 80px;
             background: transparent;
             border: none;
             color: #fff;
@@ -200,22 +199,59 @@
             border-radius: 8px;
         }
 
-        /* Reset Button */
-        .reset-btn {
-            width: 100%;
-            padding: 16px;
+        .delta-display {
+            min-width: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            text-align: left;
+        }
+
+        .delta-positive {
+            color: #2ed573;
+        }
+
+        .delta-negative {
+            color: #ff4757;
+        }
+
+        .delta-zero {
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* Buttons row */
+        .buttons-row {
+            display: flex;
+            gap: 10px;
             margin-top: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 16px;
             background: rgba(255,255,255,0.1);
             border: 2px solid rgba(255,255,255,0.2);
             border-radius: 12px;
             color: #fff;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
         }
 
-        .reset-btn:active {
+        .action-btn:active {
             background: rgba(255,255,255,0.2);
+        }
+
+        .save-btn {
+            border-color: #2ed573;
+        }
+
+        .base-display {
+            text-align: center;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 12px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
         }
 
         /* Prevent zoom on double tap */
@@ -285,6 +321,7 @@
                 <span class="color-label">C</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <input type="number" class="value-display" id="cValue" min="0" max="100" value="0">
+                <span class="delta-display delta-zero" id="cDelta"></span>
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
@@ -292,6 +329,7 @@
                 <span class="color-label">M</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <input type="number" class="value-display" id="mValue" min="0" max="100" value="0">
+                <span class="delta-display delta-zero" id="mDelta"></span>
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
@@ -299,6 +337,7 @@
                 <span class="color-label">Y</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <input type="number" class="value-display" id="yValue" min="0" max="100" value="0">
+                <span class="delta-display delta-zero" id="yDelta"></span>
                 <button class="btn btn-plus" type="button">+</button>
             </div>
 
@@ -306,16 +345,24 @@
                 <span class="color-label">K</span>
                 <button class="btn btn-minus" type="button">−</button>
                 <input type="number" class="value-display" id="kValue" min="0" max="100" value="0">
+                <span class="delta-display delta-zero" id="kDelta"></span>
                 <button class="btn btn-plus" type="button">+</button>
             </div>
         </div>
 
-        <button class="reset-btn" id="resetBtn" type="button">Сбросить</button>
+        <div class="buttons-row">
+            <button class="action-btn save-btn" id="saveBtn" type="button">Сохранить базу</button>
+            <button class="action-btn" id="resetBtn" type="button">Сбросить</button>
+        </div>
+
+        <div class="base-display" id="baseDisplay">База: —</div>
     </div>
 
     <script>
         // CMYK values (0-100)
         const cmyk = { c: 0, m: 0, y: 0, k: 0 };
+        // Base CMYK values (for delta calculation)
+        let baseCmyk = null;
 
         // Convert CMYK value to layer color (for multiply blend)
         // C -> affects Red, M -> affects Green, Y -> affects Blue, K -> affects all
@@ -329,6 +376,20 @@
                 case 'y': return `#ffff${hex}`; // Yellow reduces Blue
                 case 'k': return `#${hex}${hex}${hex}`; // Black reduces all
             }
+        }
+
+        // Format delta for display
+        function formatDelta(delta) {
+            if (delta > 0) return `+${delta}`;
+            if (delta < 0) return `${delta}`;
+            return '';
+        }
+
+        // Get delta class
+        function getDeltaClass(delta) {
+            if (delta > 0) return 'delta-positive';
+            if (delta < 0) return 'delta-negative';
+            return 'delta-zero';
         }
 
         // Update display
@@ -348,6 +409,24 @@
             document.getElementById('mValue').value = cmyk.m;
             document.getElementById('yValue').value = cmyk.y;
             document.getElementById('kValue').value = cmyk.k;
+
+            // Update deltas
+            if (baseCmyk) {
+                ['c', 'm', 'y', 'k'].forEach(channel => {
+                    const delta = cmyk[channel] - baseCmyk[channel];
+                    const el = document.getElementById(`${channel}Delta`);
+                    el.textContent = formatDelta(delta);
+                    el.className = 'delta-display ' + getDeltaClass(delta);
+                });
+            }
+        }
+
+        // Save current values as base
+        function saveBase() {
+            baseCmyk = { ...cmyk };
+            document.getElementById('baseDisplay').textContent =
+                `База: C${baseCmyk.c} M${baseCmyk.m} Y${baseCmyk.y} K${baseCmyk.k}`;
+            updateDisplay();
         }
 
         // Handle manual input
@@ -373,6 +452,13 @@
             cmyk.m = 0;
             cmyk.y = 0;
             cmyk.k = 0;
+            baseCmyk = null;
+            document.getElementById('baseDisplay').textContent = 'База: —';
+            ['c', 'm', 'y', 'k'].forEach(channel => {
+                const el = document.getElementById(`${channel}Delta`);
+                el.textContent = '';
+                el.className = 'delta-display delta-zero';
+            });
             updateDisplay();
         }
 
@@ -426,6 +512,9 @@
             input.addEventListener('input', () => handleInput(color, input));
             input.addEventListener('blur', () => handleInput(color, input));
         });
+
+        // Save base button
+        document.getElementById('saveBtn').addEventListener('click', saveBase);
 
         // Reset button
         document.getElementById('resetBtn').addEventListener('click', resetColors);
