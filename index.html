@@ -106,6 +106,110 @@
         .label-y { bottom: 8px; left: 12px; }
         .label-k { bottom: 8px; right: 12px; }
 
+        /* Center click zone */
+        .center-zone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30%;
+            height: 30%;
+            cursor: pointer;
+            z-index: 20;
+            border-radius: 12px;
+        }
+
+        /* Fullscreen color overlay */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            isolation: isolate;
+            cursor: pointer;
+        }
+
+        .fullscreen-overlay.visible {
+            display: flex;
+        }
+
+        .fullscreen-color-layers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .fullscreen-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            mix-blend-mode: multiply;
+        }
+
+        .fullscreen-info {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 24px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 16px;
+            color: #fff;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .fullscreen-info h2 {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .fullscreen-info .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin: 8px 0;
+            font-size: 1.1rem;
+        }
+
+        .fullscreen-info .info-label {
+            opacity: 0.7;
+        }
+
+        .fullscreen-info .info-value {
+            font-weight: 700;
+        }
+
+        .fullscreen-info .correction {
+            color: #2ed573;
+        }
+
+        .fullscreen-info .correction.negative {
+            color: #ff4757;
+        }
+
+        .fullscreen-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(0,0,0,0.5);
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+
         /* CMYK Values Display */
         .cmyk-display {
             background: rgba(255,255,255,0.1);
@@ -381,6 +485,33 @@
             <span class="color-label-overlay label-m">M</span>
             <span class="color-label-overlay label-y">Y</span>
             <span class="color-label-overlay label-k">K</span>
+            <div class="center-zone" id="centerZone"></div>
+        </div>
+
+        <!-- Fullscreen color overlay -->
+        <div class="fullscreen-overlay" id="fullscreenOverlay">
+            <div class="fullscreen-color-layers">
+                <div class="fullscreen-layer" id="fsLayerC"></div>
+                <div class="fullscreen-layer" id="fsLayerM"></div>
+                <div class="fullscreen-layer" id="fsLayerY"></div>
+                <div class="fullscreen-layer" id="fsLayerK"></div>
+            </div>
+            <div class="fullscreen-info" id="fullscreenInfo">
+                <h2>Цвет</h2>
+                <div class="info-row">
+                    <span class="info-label">База:</span>
+                    <span class="info-value" id="fsBase">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Текущий:</span>
+                    <span class="info-value" id="fsCurrent">C0 M0 Y0 K0</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Коррекция:</span>
+                    <span class="info-value correction" id="fsCorrection">—</span>
+                </div>
+            </div>
+            <span class="fullscreen-hint">Нажмите для закрытия</span>
         </div>
 
         <div class="cmyk-display" id="cmykDisplay">C: 0  M: 0  Y: 0  K: 0</div>
@@ -686,6 +817,52 @@
                 adjustColor(color, delta);
             }, { passive: false });
         });
+
+        // Fullscreen overlay
+        const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+        const centerZone = document.getElementById('centerZone');
+
+        function showFullscreen() {
+            // Update fullscreen layers
+            document.getElementById('fsLayerC').style.backgroundColor = getLayerColor('c', cmyk.c);
+            document.getElementById('fsLayerM').style.backgroundColor = getLayerColor('m', cmyk.m);
+            document.getElementById('fsLayerY').style.backgroundColor = getLayerColor('y', cmyk.y);
+            document.getElementById('fsLayerK').style.backgroundColor = getLayerColor('k', cmyk.k);
+
+            // Update info
+            document.getElementById('fsCurrent').textContent =
+                `C${cmyk.c} M${cmyk.m} Y${cmyk.y} K${cmyk.k}`;
+
+            if (baseCmyk) {
+                document.getElementById('fsBase').textContent =
+                    `C${baseCmyk.c} M${baseCmyk.m} Y${baseCmyk.y} K${baseCmyk.k}`;
+
+                const corrections = ['c', 'm', 'y', 'k'].map(ch => {
+                    const d = cmyk[ch] - baseCmyk[ch];
+                    if (d === 0) return '';
+                    return `${ch.toUpperCase()}${d > 0 ? '+' : ''}${d}`;
+                }).filter(s => s).join(' ');
+
+                const correctionEl = document.getElementById('fsCorrection');
+                correctionEl.textContent = corrections || '—';
+
+                const hasNegative = ['c', 'm', 'y', 'k'].some(ch => cmyk[ch] - baseCmyk[ch] < 0);
+                const hasPositive = ['c', 'm', 'y', 'k'].some(ch => cmyk[ch] - baseCmyk[ch] > 0);
+                correctionEl.classList.toggle('negative', hasNegative && !hasPositive);
+            } else {
+                document.getElementById('fsBase').textContent = '—';
+                document.getElementById('fsCorrection').textContent = '—';
+            }
+
+            fullscreenOverlay.classList.add('visible');
+        }
+
+        function hideFullscreen() {
+            fullscreenOverlay.classList.remove('visible');
+        }
+
+        centerZone.addEventListener('click', showFullscreen);
+        fullscreenOverlay.addEventListener('click', hideFullscreen);
 
         // Initialize
         updateDisplay();
