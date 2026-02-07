@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cmyk-generator-v1';
+const CACHE_NAME = 'cmyk-generator-v2';
 const urlsToCache = [
   '/',
   '/index.html',
